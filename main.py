@@ -6,6 +6,7 @@ import os, re, json, base64, time, urllib.request, urllib.error
 API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 API = "https://generativelanguage.googleapis.com/v1beta"
 OUT_FILE = "free_pdf_models.txt"
+MAX_SECONDS = 8
 
 FAMILY = re.compile(r"^gemini-", re.I)
 TIER = re.compile(r"-(flash-lite|flash)(?:-|$)", re.I)
@@ -96,8 +97,14 @@ def test_model(key, model, pdf_b64):
         {"text": "What is this file? Reply with OK only."},
         {"inline_data": {"mime_type": "application/pdf", "data": pdf_b64}}
     ]}]}
+    t0 = time.time()
     st, d = http_json(f"{API}/models/{model}:generateContent", "POST",
-                      {"x-goog-api-key": key}, body)
+                      {"x-goog-api-key": key}, body, timeout=MAX_SECONDS)
+    elapsed = time.time() - t0
+    if st == 0:
+        return "slow" if elapsed >= MAX_SECONDS else "error"
+    if elapsed > MAX_SECONDS:
+        return "slow"
     msg = json.dumps(d, ensure_ascii=False).lower()
     if st == 200:
         return "free"
@@ -153,17 +160,19 @@ def main():
     print(f"candidates={len(candidates)}")
 
     pdf_b64 = base64.b64encode(make_test_pdf()).decode()
-    working, paid, other = [], [], []
+    working, paid, slow, other = [], [], [], []
     print("testing...")
     for m in candidates:
         cat = test_model(key, m, pdf_b64)
-        icon = {"free": "OK", "paid": "PAID", "no_pdf": "NOPDF",
-                "gone": "GONE", "ratelimited": "RATE", "error": "ERR"}.get(cat, "?")
+        icon = {"free": "OK", "paid": "PAID", "no_pdf": "NOPDF", "gone": "GONE",
+                "ratelimited": "RATE", "slow": "SLOW", "error": "ERR"}.get(cat, "?")
         print(f"{icon} {m}")
         if cat == "free":
             working.append(m)
         elif cat == "paid":
             paid.append(m)
+        elif cat == "slow":
+            slow.append(m)
         else:
             other.append(m)
         time.sleep(1)
@@ -176,6 +185,7 @@ def main():
     print("-" * 40)
     print(f"free={len(working)}")
     print(f"paid={len(paid)}")
+    print(f"slow={len(slow)}")
     print("added=" + (",".join(added) if added else "-"))
     print("removed=" + (",".join(removed) if removed else "-"))
     print(f"file={OUT_FILE}")

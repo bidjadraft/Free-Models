@@ -131,7 +131,7 @@ def read_old_models():
 
 def write_models(models):
     with open(OUT_FILE, "w", encoding="utf-8") as f:
-        for m in sorted(models, key=rank_score, reverse=True):
+        for m in sorted(models, key=rank_score):
             f.write(m + "\n")
 
 

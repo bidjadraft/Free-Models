@@ -27,7 +27,7 @@ jobs:
       - name: Run scan
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-        run: python3 main.py
+        run: python3 ollama.py
 
       - name: Commit result
         run: |

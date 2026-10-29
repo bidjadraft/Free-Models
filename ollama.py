@@ -45,14 +45,12 @@ def test_model(key, model):
         return "slow" if elapsed >= MAX_SECONDS else "error"
     if elapsed > MAX_SECONDS:
         return "slow"
-    
+
     msg = json.dumps(d, ensure_ascii=False).lower()
     if st == 200 and "message" in d:
         return "free"
-    
     if "not included in your free usage" in msg or "add usage credits" in msg:
         return "paid"
-    
     if "model not found" in msg or "does not exist" in msg:
         return "gone"
     if st == 429:
@@ -75,19 +73,24 @@ def read_old():
 
 def write_models(models):
     with open(OUT_FILE, "w", encoding="utf-8") as f:
-        for m in sorted(models, key=rank_score):
-            f.write(m + "\n")
+        if not models:
+            f.write("# no free models found\n")
+        else:
+            for m in sorted(models, key=rank_score):
+                f.write(m + "\n")
 
 def main():
     key = API_KEY
     if not key:
         print("NO_KEY")
+        write_models([])
         return
 
     all_models = list_models(key)
     print(f"total={len(all_models)}")
     if not all_models:
         print("FETCH_FAIL")
+        write_models([])
         return
 
     working, paid, slow, other = [], [], [], []

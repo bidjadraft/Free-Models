@@ -4,4 +4,3 @@ gpt-oss:20b
 beam
 nemotron-3-nano:30b
 nemotron-3-super
-nemotron-3-ultra
